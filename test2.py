@@ -102,7 +102,6 @@ def chat_with_bot_stream(user_input, audio, language, history):
     )
 
     # Generate with the context, history
-    # messages = [{"role": "system", "content": conversation_history[0][1]}]
     messages = [{"role": "system", "content": system_prompt}]
     for user_msg, ai_response in conversation_history[-3:]:  
         if user_msg:
@@ -134,23 +133,12 @@ def chat_with_bot_stream(user_input, audio, language, history):
         conversation_history[-1] = (conversation_history[-1][0], full_response)
         # Filter the history start with "system" (the first one)
         yield [(u, a) for u, a in conversation_history if u != "system"]
-
-    # chat_history = []
-    # for i in range(1, len(conversation_history), 2):
-    #     if i + 1 < len(conversation_history):
-    #         user_msg = conversation_history[i][0]
-    #         bot_msg = conversation_history[i + 1][1]
-    #         chat_history.append((user_msg, bot_msg))
-
-    #         if audio:
-    #             tts = gTTS(bot_msg, lang="zh" if language == "中文" else "en")
-    #             tts.save("bot_response.mp3")
-    #             chat_history.append((None, gr.Audio(value="bot_response.mp3")))
-
-    # return chat_history
     
     if audio:
         try:
+            #conversation_history.append("Generating text-to-speech...", "")
+            #yield conversation_history
+
             audio_filename = f"bot_response_{int(time.time())}.mp3"
             tts = gTTS(full_response, lang="zh" if language == "中文" else "en")
             tts.save(audio_filename)
@@ -163,12 +151,11 @@ def chat_with_bot_stream(user_input, audio, language, history):
     yield conversation_history 
 
 
-
 #Title animation - https://www.gradio.app/guides/custom-CSS-and-JS
 js_animate = """
 function load_animate() {
   //Creat animation
-  var text = "Welcome to Tripper, your personalized travel guide! ";
+  var text = " Welcome to Tripper, your personalized travel guide! ";
 
   // Remove existing animation to avoid duplication
   var existing = document.getElementById('gradio-animation');
@@ -218,9 +205,14 @@ function load_animate() {
   }
 
   //Set all components to dark mode
-  var gradioContainer = document.querySelector(".gradio-container");
-  gradioContainer.classList.add("dark-mode");
-
+  document.querySelector(".gradio-container").classList.add("dark-mode");
+  var span = document.querySelectorAll("span");
+  var targetedSpans = Array.from(span).filter(function(span) {
+      return span.innerText === "Enable Text-to-Speech";
+  });
+  targetedSpans.forEach(function(span) {
+      span.classList.add("dark-mode");
+  });
 }
 
 """
@@ -229,15 +221,30 @@ function load_animate() {
 js_theme="""
 function toggleTheme() {
     var theme = localStorage.getItem("theme");
-    var isDarkMode = theme === "dark" || theme === null; // Default to dark mode
+    var isDarkMode = theme === "dark" || theme === null; //Default to dark mode
 
     var gradioContainer = document.querySelector(".gradio-container");
+    var span = document.querySelectorAll("span");
+    var targetedSpans = Array.from(span).filter(function(span) {
+        return span.innerText === "Enable Text-to-Speech";
+    });
+
     if (isDarkMode) {
         gradioContainer.classList.remove("dark-mode");
         gradioContainer.classList.add("light-mode");
+
+        targetedSpans.forEach(function(span) {
+            span.classList.remove("dark-mode");
+            span.classList.add("light-mode");
+        });
     } else {
         gradioContainer.classList.remove("light-mode");
         gradioContainer.classList.add("dark-mode");
+
+        targetedSpans.forEach(function(span) {
+            span.classList.remove("light-mode");
+            span.classList.add("dark-mode");
+        });
     }
 
     var themeButton = document.getElementById("theme-toggle-btn");
@@ -251,13 +258,13 @@ function toggleTheme() {
 conversation_history = []
 TITLE="""
 <h1>✈️ Travel Assistant</h1>
-<p class="subtitle">Discuss your travel plans and find out about your destination with our travel chatbot!</h2>
+<h3 class="subtitle">Discuss your travel plans and find out about your destination with our travel chatbot!</hh3>
 """
 
 PLAN_TITLE="""
 <h1>📅 Trip Planner</h1>
-<p class="subtitle">Generate a day-to-day travel plan based on your preferences!<br>You can write out your plans in the "Trip Details"
-section or enter your criteria with the other sliders and text boxes. The more details, the better!</p>
+<h3 class="subtitle">Generate a day-to-day travel plan based on your preferences!<br>You can write out your plans in the "Trip Details"
+section or enter your criteria with the other sliders and text boxes. The more details, the better!</h3>
 """
 
 STYLE = """
@@ -303,19 +310,21 @@ STYLE = """
     color: #ffffff !important;
   }
 
-  .light-mode h1, .light-mode p {
+  .light-mode h1, .light-mode h3 {
     color: #000 !important;
   }
-  .dark-mode h1, .dark-mode p {
+  .dark-mode h1, .dark-mode h3 {
     color: #ffffff !important;
   }
 
-  .light-mode textarea, .light-mode .gradio-slider input, .light-mode gradio-textbox {
+  .light-mode textarea, .light-mode .gradio-slider input, 
+  .light-mode gradio-textbox, .light-mode #language-dropdown textarea {
     background-color: #ededed !important;
     color: #000 !important;
     border: 1px solid #444 !important;
   }
-  .dark-mode textarea, .dark-mode .gradio-slider input, .dark-mode gradio-textbox {
+  .dark-mode textarea, .dark-mode .gradio-slider input, 
+  .dark-mode gradio-textbox, .dark-mode #language-dropdown textarea {
     background-color: #27272a !important;
     color: #ffffff !important;
     border: 1px solid #444 !important;
