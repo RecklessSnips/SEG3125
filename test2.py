@@ -8,6 +8,9 @@ import speech_recognition as sr
 import os
 from gtts import gTTS
 import time;
+import folium
+from geopy.geocoders import Nominatim
+from geopy.distance import geodesic
 
 # Anika's API key
 # GROQ_API_KEY= "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"
@@ -84,7 +87,10 @@ def generate_plan(destination, interests, num_days, budget, time_period, num_peo
         top_p=0.9,
     )
 
-    return completion.choices[0].message.content
+    trip_text = completion.choices[0].message.content
+    places = extract_places(trip_text)
+
+    return trip_text, places
 
 
 def chat_with_bot_stream(user_input, audio, language, history):
@@ -136,8 +142,8 @@ def chat_with_bot_stream(user_input, audio, language, history):
     
     if audio:
         try:
-            #conversation_history.append("Generating text-to-speech...", "")
-            #yield conversation_history
+            conversation_history.append("Generating text-to-speech...", "")
+            yield conversation_history
 
             audio_filename = f"bot_response_{int(time.time())}.mp3"
             tts = gTTS(full_response, lang="zh" if language == "中文" else "en")
@@ -150,6 +156,59 @@ def chat_with_bot_stream(user_input, audio, language, history):
     # Make sure see the voice inside the chat bar
     yield conversation_history 
 
+# Geocode function using Geopy
+def geocode_location(location_name):
+    geolocator = Nominatim(user_agent="trip-planner")  # Use your custom user agent
+    location = geolocator.geocode(location_name)
+    if location:
+        return [location.latitude, location.longitude]
+    else:
+        return None 
+
+def generate_map(locations):
+    # Split the string of locations into a list
+    location_list = locations.strip().split("\n")
+    
+    # Convert location names into latitudes and longitudes 
+    coordinates = []
+    for location in location_list:
+        coord = geocode_location(location)
+        if coord:
+          coordinates.append(geocode_location(location))
+    
+    # Check if any coordinates were found
+    if len(coordinates) >= 2:
+
+        #Filter out locations that are too far apart from the reference coordinate
+        filtered_coordinates = [coordinates[0]]
+        for coord in coordinates[1:]:
+            distance = geodesic(coordinates[0], coord).km
+            if distance <= 500:
+                filtered_coordinates.append(coord)
+
+        if filtered_coordinates:
+            # Create map
+            m = folium.Map(location=filtered_coordinates[0], zoom_start=12)
+            for location in filtered_coordinates:
+                folium.Marker(location).add_to(m)
+
+            map_html = m._repr_html_()
+            return map_html
+
+#Extract names of places in trip plan
+def extract_places(trip_text):
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+              {"role": "system", "content": "Extract the names of places (museums, hotels, restaurants, attractions) from this itinerary. Just print the names, no other formatting or words. Put the name of the destination (city) on the first line."},
+              {"role": "user", "content": trip_text}
+          ],
+        temperature=0,
+        max_completion_tokens=5000,
+        top_p=1
+    )
+
+    return response.choices[0].message.content.strip()
 
 #Title animation - https://www.gradio.app/guides/custom-CSS-and-JS
 js_animate = """
@@ -310,10 +369,10 @@ STYLE = """
     color: #ffffff !important;
   }
 
-  .light-mode h1, .light-mode h3 {
+  .light-mode h1, .light-mode h3, .light-mode p, .light-mode li, .light-mode strong {
     color: #000 !important;
   }
-  .dark-mode h1, .dark-mode h3 {
+  .dark-mode h1, .dark-mode h3, .dark-mode p, .dark-mode li, .dark-mode strong {
     color: #ffffff !important;
   }
 
@@ -397,12 +456,6 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         gr.HTML(TITLE)
 
         chatbot = gr.Chatbot(label="Travel Assistant Chatbot")
-
-        # user_input = gr.Textbox(
-        #     label="",
-        #     placeholder="Enter your message here...",
-        #     lines=1,
-        # )
         
         user_input = gr.MultimodalTextbox(
             interactive=True,
@@ -421,9 +474,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         language_dropdown = gr.Dropdown(choices=["English", "Français", "Español", "Deutsch", "Italiano", "日本語", "中文"],
                                         value="English", label="Language", elem_id="language-dropdown", container=False)
         
-        
-        # send_button = gr.Button("Send", elem_id="send-button")
-        
+                
         # Process text + voice
         chat_msg = user_input.submit(
           fn=lambda:""
@@ -466,14 +517,26 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
 
         generate_btn = gr.Button("Generate Plan", elem_id="send-button")
         plan_output = gr.Markdown(label="Plan")
+        map_output = gr.HTML("")
+        places = gr.Textbox(visible=False)
+
         generate_btn.click(
-          fn=lambda *args: "**Generating trip plan...**",
-          inputs=[destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown],
-          outputs=plan_output
+            fn=lambda *args: ("**Generating trip plan...**", ""),  
+            inputs=[],
+            outputs=[plan_output, map_output]
         ).then(
             fn=generate_plan,
             inputs=[destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown],
-            outputs=plan_output
+            outputs=[plan_output, places]  
+        ).then(
+            fn=lambda *args: ("Generating map..."),  
+            inputs=[],
+            outputs=map_output
+        ).then(
+            fn=generate_map,
+            inputs=places,  
+            outputs=map_output
         )
+
 
 demo.launch(server_port=8080)
