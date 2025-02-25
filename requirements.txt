@@ -1,0 +1,7 @@
+gradio
+groq
+gtts
+python-dotenv
+SpeechRecognition
+folium
+geopy
