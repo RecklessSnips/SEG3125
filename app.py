@@ -1,7 +1,4 @@
 import gradio as gr
-from gradio.components import Chatbot
-from gradio import Blocks
-from gradio import Interface
 from dotenv import load_dotenv
 from groq import Groq
 import speech_recognition as sr 
@@ -600,4 +597,4 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         )
 
 
-demo.launch(server_port=8080)
+demo.launch()
