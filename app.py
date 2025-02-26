@@ -140,12 +140,15 @@ def chat_with_bot_stream(user_input, audio, language, history):
     
     if audio:
         try:
+            history.append(("", "🔊Generating text-to-speech..."))
+            yield history
+
             audio_filename = f"bot_response_{int(time.time())}.mp3"
             tts = gTTS(full_response, lang="zh" if language == "中文" else "en")
             tts.save(audio_filename)
 
             # Insert the voice inside the chat
-            history.append(("🔊Generating text-to-speech...", (audio_filename,)))  
+            history.append(("", (audio_filename,)))  
         except Exception as e:
             print(f"TTS failed: {e}")
     # Make sure see the voice inside the chat bar
@@ -457,7 +460,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             file_count="multiple",
             placeholder="Enter your message or upload talk to Tripper...",
             show_label=False,
-            sources=["microphone"],
+            sources=["microphone"], 
         )
         
         audio_button = gr.Checkbox(value=False, elem_id="checkbox", container=False, label="Enable Text-to-Speech")
@@ -472,7 +475,9 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
                 
         # Process text + voice
         chat_msg = user_input.submit(
-          fn=lambda:""
+            fn=lambda _: gr.update(interactive=False, submit_btn=False),  
+            inputs=[],
+            outputs=user_input
         ).then(
             fn=chat_with_bot_stream,
             inputs=[user_input, audio_button, language_dropdown, chatbot],
@@ -481,6 +486,10 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         ).then(
             fn=lambda _: "",
             inputs=None,
+            outputs=user_input
+        ).then(
+            fn=lambda _: gr.update(interactive=True, submit_btn=True),  
+            inputs=[],
             outputs=user_input
         )
 
