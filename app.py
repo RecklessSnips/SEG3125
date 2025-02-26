@@ -49,7 +49,7 @@ def process_input(history, message):
 
     return history, gr.MultimodalTextbox(value=None, interactive=True)
 
-def generate_plan(destination, interests, num_days, budget, time_period, num_people_slider, currency):
+def generate_plan(destination, interests, num_days, budget, time_period, num_people_slider, currency, language):
     prompt_parts = ["Generate a travel plan."]
 
     if destination.strip():
@@ -64,12 +64,13 @@ def generate_plan(destination, interests, num_days, budget, time_period, num_peo
         prompt_parts.append(f"Time Period: {time_period}.")
     if num_people_slider > 1:
         prompt_parts.append(f"Number of People: {num_people_slider}.")
+    prompt_parts.append(f"Please respond in {language}.")
 
     # Final prompt ensuring at least a generic trip plan is generated
     user_prompt = " ".join(prompt_parts)
 
     messages = [
-        {"role": "system", "content": "You are a holiday planner. Provide structured responses about attractions to visit, hotels to stay at, and restaurants to eat at on holiday. "},
+        {"role": "system", "content": "You are a holiday planner. Provide structured responses about attractions to visit, hotels to stay at, and restaurants to eat at on holiday. You can respond in many languages when prompted."},
         {"role": "user", "content": user_prompt}
     ]
 
@@ -171,9 +172,9 @@ def geocode_location(location_name):
     geolocator = Nominatim(user_agent="trip-planner")  # Use your custom user agent
     location = geolocator.geocode(location_name)
     if location:
-        return [location.latitude, location.longitude]
+        return [location.latitude, location.longitude], location_name  
     else:
-        return None 
+        return None
 
 def generate_map(locations):
     # Split the string of locations into a list
@@ -192,18 +193,20 @@ def generate_map(locations):
         #Filter out locations that are too far apart from the reference coordinate
         filtered_coordinates = [coordinates[0]]
         for coord in coordinates[1:]:
-            distance = geodesic(coordinates[0], coord).km
+            distance = geodesic(coordinates[0][0], coord[0]).km
             if distance <= 500:
                 filtered_coordinates.append(coord)
 
         if filtered_coordinates:
-            # Create map
-            m = folium.Map(location=filtered_coordinates[0], zoom_start=12)
-            for location in filtered_coordinates:
-                folium.Marker(location).add_to(m)
+            m = folium.Map(location=filtered_coordinates[0][0], zoom_start=12)
 
-            map_html = m._repr_html_()
-            return map_html
+            for coord, name in filtered_coordinates[1:]:
+                folium.Marker(
+                    location=coord,
+                    tooltip=name  # Tooltip appears on hover
+                ).add_to(m)
+
+            return m._repr_html_()
 
 #Extract names of places in trip plan
 def extract_places(trip_text):
@@ -341,25 +344,35 @@ STYLE = """
 
   #send-button {
     width: 20%;
-    self-align: end;
+    align-self: end;
     margin-left: auto;
   }
 
   #theme-toggle-btn {
-    width: 5%;
-    self-align: end;
+    min-width: 5%;
+    align-self: end;
     margin-left: auto;
   }
 
-  #checkbox {
-    width: 5%;
-    self-align: end;
-    margin-left: auto;
+  #language-container {
+    display: flex'
+    justify-content: flex-start;
+    width: 20%;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    flex-direction: column;
+    align-self: end;
   }
 
   #language-dropdown {
     width: 20%;
-    self-align: end;
+    position: relative;
+    margin: 0;
+  }
+
+  #checkbox {
+    width: 5%;
+    align-self: end;
     margin-left: auto;
   }
 
@@ -476,14 +489,25 @@ def update_budget_slider(currency):
 with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
     gr.HTML(STYLE)
 
-    #Theme toggle button
-    theme_toggle = gr.Button("☼", elem_id="theme-toggle-btn")
-    theme_toggle.click(
-        fn=lambda: None,
-        inputs=[],
-        outputs=[],
-        js=js_theme
-    )
+    with gr.Row(elem_id="language-container"):
+        language_dropdown = gr.Dropdown(choices=[
+            "🇬🇧 English", 
+            "🇫🇷 Français", 
+            "🇪🇸 Español", 
+            "🇩🇪 Deutsch", 
+            "🇮🇹 Italiano", 
+            "🇯🇵 日本語", 
+            "🇨🇳 中文"
+        ], value="🇬🇧 English", label="Language", elem_id="language-dropdown", container=False)
+
+        #Theme toggle button
+        theme_toggle = gr.Button("☼", elem_id="theme-toggle-btn")
+        theme_toggle.click(
+            fn=lambda: None,
+            inputs=[],
+            outputs=[],
+            js=js_theme
+        )
 
     with gr.Tabs():
 
@@ -505,10 +529,6 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
                               'What are the best destinations for a budget-friendly trip in Europe?',
                               'Plan a four day trip to Scotland for a nature-loving family.'],
                     inputs=user_input, label="Examples")
-
-        language_dropdown = gr.Dropdown(choices=["English", "Français", "Español", "Deutsch", "Italiano", "日本語", "中文"],
-                                        value="English", label="Language", elem_id="language-dropdown", container=False)
-        
                 
         # Process text + voice
         chat_msg = user_input.submit(
@@ -567,7 +587,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             outputs=[plan_output, map_output]
         ).then(
             fn=generate_plan,
-            inputs=[destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown],
+            inputs=[destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown, language_dropdown],
             outputs=[plan_output, places]  
         ).then(
             fn=lambda *args: ("Generating map..."),  
