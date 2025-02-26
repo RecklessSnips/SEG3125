@@ -88,10 +88,8 @@ def generate_plan(destination, interests, num_days, budget, time_period, num_peo
 
 
 def chat_with_bot_stream(user_input, audio, language, history):
-    if history is None:
-        history = []
-    history, _ = process_input(history, user_input)
-
+    global conversation_history
+    conversation_history, _ = process_input(history, user_input)
 
     # Language prompt
     language_prompt = f"Please respond in {language}."
@@ -105,18 +103,16 @@ def chat_with_bot_stream(user_input, audio, language, history):
 
     # Generate with the context, history
     messages = [{"role": "system", "content": system_prompt}]
-    for user_msg, ai_response in history[-3:]:  
+    for user_msg, ai_response in conversation_history[-3:]:  
         if user_msg:
             messages.append({"role": "user", "content": user_msg})
         if ai_response:
-            if isinstance(ai_response, tuple):
-                messages.append({"role": "assistant", "content": ai_response[0]})
-            else:
-                messages.append({"role": "assistant", "content": ai_response})
+            messages.append({"role": "assistant", "content": ai_response})
 
     # Add the inputs
-    if history[-1][1] == "":
-        messages.append({"role": "user", "content": history[-1][0]})
+    user_input_text = conversation_history[-1][0]
+    if conversation_history[-1][1] == "":
+        messages.append({"role": "user", "content": user_input_text})
 
     try:
         completion = client.chat.completions.create(
@@ -134,22 +130,25 @@ def chat_with_bot_stream(user_input, audio, language, history):
     for chunk in completion:
         content = chunk.choices[0].delta.content or ""
         full_response += content  
-        history[-1] = (history[-1][0], full_response)
+        conversation_history[-1] = (conversation_history[-1][0], full_response)
         # Filter the history start with "system" (the first one)
-        yield [(u, a) for u, a in history if u != "system"]
+        yield [(u, a) for u, a in conversation_history if u != "system"]
     
     if audio:
         try:
+            conversation_history.append("Generating text-to-speech...", "")
+            yield conversation_history
+
             audio_filename = f"bot_response_{int(time.time())}.mp3"
             tts = gTTS(full_response, lang="zh" if language == "中文" else "en")
             tts.save(audio_filename)
 
             # Insert the voice inside the chat
-            history.append(("🔊Generating text-to-speech...", (audio_filename,)))  
+            conversation_history.append(("", (audio_filename,)))  
         except Exception as e:
             print(f"TTS failed: {e}")
     # Make sure see the voice inside the chat bar
-    yield history 
+    yield conversation_history 
 
 # Geocode function using Geopy
 def geocode_location(location_name):
