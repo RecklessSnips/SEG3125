@@ -143,8 +143,20 @@ def chat_with_bot_stream(user_input, audio, language, history):
             history.append(("", "🔊Generating text-to-speech..."))
             yield history
 
+            #Get chosen language 
+            language_map = {
+                "English": "en",
+                "Français": "fr",
+                "Español": "es",
+                "Deutsch": "de",
+                "Italiano": "it",
+                "日本語": "ja",
+                "中文": "zh"
+            }
+            tts_language = language_map.get(language, "en") #Defaults to english
+
             audio_filename = f"bot_response_{int(time.time())}.mp3"
-            tts = gTTS(full_response, lang="zh" if language == "中文" else "en")
+            tts = gTTS(full_response, lang=tts_language)
             tts.save(audio_filename)
 
             # Insert the voice inside the chat
@@ -367,18 +379,43 @@ STYLE = """
     color: #ffffff !important;
   }
 
-  .light-mode h1, .light-mode h3, .light-mode p, .light-mode li, .light-mode strong {
+  .light-mode h1, .light-mode h3, .light-mode p, 
+  .light-mode li, .light-mode strong, .light-mode .svelte-i3tvor,
+  .light-mode .svelte-p5q82i {
     color: #000 !important;
   }
-  .dark-mode h1, .dark-mode h3, .dark-mode p, .dark-mode li, .dark-mode strong {
+  .dark-mode h1, .dark-mode h3, .dark-mode p, 
+  .dark-mode li, .dark-mode strong, .dark-mode .svelte-i3tvor,
+  .dark-mode .svelte-p5q82i {
     color: #ffffff !important;
   }
+
+  .light-mode .bubble-wrap, 
+  .light-mode .multimodal-textbox, .light-mode .svelte-i3tvor {
+    background-color: #ffffff !important;
+  }
+  .dark-mode .bubble-wrap, 
+  .dark-mode .multimodal-textbox, .dark-mode .svelte-i3tvor  {
+    background-color: #201c1c !important;
+  }
+
+   .light-mode .bot, .light-mode .message, .light-mode .placeholder-content,
+   .light-mode .progress-text {
+    background-color:rgb(245, 245, 245) !important;
+    border-color: rgb(185, 182, 182) !important;
+   }
+
+   .dark-mode .bot, .dark-mode .message, .dark-mode .placeholder=content,
+   .dark-mode .progress-text {
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+   }
 
   .light-mode textarea, .light-mode .gradio-slider input, 
   .light-mode gradio-textbox, .light-mode #language-dropdown textarea {
     background-color: #ededed !important;
     color: #000 !important;
-    border: 1px solid #444 !important;
+    border: 1px solid rgb(185, 182, 182) !important;
   }
   .dark-mode textarea, .dark-mode .gradio-slider input, 
   .dark-mode gradio-textbox, .dark-mode #language-dropdown textarea {
@@ -453,7 +490,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
       with gr.TabItem("💬 Chat"):
         gr.HTML(TITLE)
 
-        chatbot = gr.Chatbot(label="Travel Assistant Chatbot")
+        chatbot = gr.Chatbot(label="Travel Assistant Chatbot", elem_id="chatbot")
         
         user_input = gr.MultimodalTextbox(
             interactive=True,
