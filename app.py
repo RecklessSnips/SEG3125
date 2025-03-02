@@ -233,17 +233,16 @@ function load_animate() {
   // Create container
   var container = document.createElement('div');
   container.id = 'gradio-animation';
-  container.style.fontSize = '2em';
+  container.style.fontSize = '36pt';
   container.style.fontWeight = 'bold';
   container.style.textAlign = 'center';
-  container.style.marginTop = '40px';
 
   var gradioContainer = document.querySelector('.gradio-container');
   gradioContainer.insertBefore(container, gradioContainer.firstChild);
 
   //Make Tripper a different color
   var specialWord = "Tripper";
-  var specialColor = "#10FFCB";
+  var specialColor = "#91CFE5";
 
   let delay = 0;
 
@@ -339,6 +338,19 @@ section or enter your criteria with the other sliders and text boxes. The more d
 STYLE = """
 <style>
 
+  #gradio-animation {
+    height: 150px;
+    background-image: url(https://cdn-icons-png.flaticon.com/512/422/422914.png);
+    background-repeat: no-repeat;
+    background-size: 150px 150px;
+    margin: 40px 0 0 80px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    white-space: pre;
+  }
+
   #send-button {
     width: 20%;
     align-self: end;
@@ -356,8 +368,6 @@ STYLE = """
     justify-content: flex-start;
     width: 20%;
     align-items: flex-end;
-    flex-wrap: nowrap;
-    flex-direction: column;
     align-self: end;
   }
 
@@ -476,7 +486,7 @@ CURRENCY_MAP = {
 }
 
 #Create custom theme colors
-custom_theme = gr.themes.Default(primary_hue="teal", secondary_hue="teal")
+custom_theme = gr.themes.Default(primary_hue="blue", secondary_hue="blue")
 
 #Update budget slider to chosen currency
 def update_budget_slider(currency):
@@ -495,10 +505,10 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             "🇮🇹 Italiano", 
             "🇯🇵 日本語", 
             "🇨🇳 中文"
-        ], value="🇬🇧 English", label="Language", elem_id="language-dropdown", container=False)
+        ], value="🇬🇧 English", label="Language", elem_id="language-dropdown", container=False, scale=8)
 
         #Theme toggle button
-        theme_toggle = gr.Button("☼", elem_id="theme-toggle-btn")
+        theme_toggle = gr.Button("☼", elem_id="theme-toggle-btn", scale=2)
         theme_toggle.click(
             fn=lambda: None,
             inputs=[],
