@@ -46,9 +46,16 @@ def process_input(history, message):
 
     return history, gr.MultimodalTextbox(value=None, interactive=True)
 
-def generate_plan(destination, interests, num_days, budget, time_period, num_people_slider, currency, language):
+def generate_plan(details, destination, interests, num_days, budget, time_period, num_people_slider, currency, language):
+    
+    #Check if an adequate number of fields were field
+    if not any([destination, details]):
+        return "", "", "**❌ Please fill either Destination or Trip Details so we know where you are planning to travel.**"
+    
     prompt_parts = ["Generate a travel plan."]
 
+    if details.strip():
+        prompt_parts.append(f"Details: {details}. ")
     if destination.strip():
         prompt_parts.append(f"Destination: {destination}.")
     if interests.strip():
@@ -82,7 +89,7 @@ def generate_plan(destination, interests, num_days, budget, time_period, num_peo
     trip_text = completion.choices[0].message.content
     places = extract_places(trip_text)
 
-    return trip_text, places
+    return trip_text, places, ""
 
 
 def chat_with_bot_stream(user_input, audio, language, history):
@@ -182,7 +189,7 @@ def generate_map(locations):
     for location in location_list:
         coord = geocode_location(location)
         if coord:
-          coordinates.append(geocode_location(location))
+          coordinates.append(coord)
     
     # Check if any coordinates were found
     if len(coordinates) >= 2:
@@ -233,7 +240,7 @@ function load_animate() {
   // Create container
   var container = document.createElement('div');
   container.id = 'gradio-animation';
-  container.style.fontSize = '36pt';
+  container.style.fontSize = '32pt';
   container.style.fontWeight = 'bold';
   container.style.textAlign = 'center';
 
@@ -563,7 +570,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         gr.HTML(PLAN_TITLE)
         with gr.Row():
           with gr.Column():
-            scenario_input = gr.Textbox(label="📝 Trip Details")
+            details_input = gr.Textbox(label="📝 Trip Details")
             destination_input = gr.Textbox(label="📍 Destination (optional)", placeholder="Enter your destination")
             interests_input = gr.Textbox(label="🎯 Interests (optional)", placeholder="E.g., hiking, food, museums")
 
@@ -584,18 +591,20 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             time_period = gr.Textbox(label="🕒 Time Period (optional)", placeholder="E.g., Summer, December, Christmas, 2025-07-10")
 
         generate_btn = gr.Button("Generate Plan", elem_id="send-button")
+        
+        error_output = gr.Markdown()
         plan_output = gr.Markdown(label="Plan")
         map_output = gr.HTML("")
         places = gr.Textbox(visible=False)
 
         generate_btn.click(
-            fn=lambda *args: ("**Generating trip plan...**", ""),  
+            fn=lambda *args: ("**Generating trip plan...**", "", ""),  
             inputs=[],
-            outputs=[plan_output, map_output]
+            outputs=[plan_output, map_output, error_output]
         ).then(
             fn=generate_plan,
-            inputs=[destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown, language_dropdown],
-            outputs=[plan_output, places]  
+            inputs=[details_input, destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown, language_dropdown],
+            outputs=[plan_output, places, error_output]  
         ).then(
             fn=lambda *args: ("Generating map..."),  
             inputs=[],
