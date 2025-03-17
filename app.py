@@ -601,7 +601,8 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             time_period = gr.Textbox(label="🕒 Time Period (optional)", placeholder="E.g., Summer, December, Christmas, 2025-07-10")
 
         generate_btn = gr.Button("Generate Plan", elem_id="send-button")
-        
+        clear_plan = gr.Button("Reset", elem_id="send-button")
+
         error_output = gr.Markdown()
         plan_output = gr.Markdown(label="Plan")
         map_output = gr.HTML("")
@@ -625,5 +626,30 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
             outputs=map_output
         )
 
+        clear_plan.click(
+            fn=lambda: ("", "", "", None, None, "", None, "USD", "", "", ""),
+            inputs=[],
+            outputs=[
+                details_input,
+                destination_input,
+                interests_input,
+                num_days_slider,
+                budget_slider,
+                time_period,
+                num_people_slider,
+                currency_dropdown,
+                plan_output,
+                map_output,
+                error_output
+            ]
+        ).then(
+            fn=update_budget_slider,
+            inputs=[currency_dropdown],  
+            outputs=[budget_slider]
+        ).then(
+            fn=lambda: (None),
+            inputs=[],
+            outputs=[budget_slider]
+        )
 
 demo.launch()
