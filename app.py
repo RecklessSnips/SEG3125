@@ -432,20 +432,20 @@ STYLE = """
     border-color: rgb(185, 182, 182) !important;
    }
 
-   .dark-mode .bot, .dark-mode .message, .dark-mode .placeholder=content,
+   .dark-mode .bot, .dark-mode .message, .dark-mode .placeholder-content,
    .dark-mode .progress-text {
     background-color: #27272a !important;
     border-color: #3f3f46 !important;
    }
 
   .light-mode textarea, .light-mode .gradio-slider input, 
-  .light-mode gradio-textbox, .light-mode #language-dropdown textarea {
+  .light-mode gradio-textbox {
     background-color: #ededed !important;
     color: #000 !important;
     border: 1px solid rgb(185, 182, 182) !important;
   }
   .dark-mode textarea, .dark-mode .gradio-slider input, 
-  .dark-mode gradio-textbox, .dark-mode #language-dropdown textarea {
+  .dark-mode gradio-textbox {
     background-color: #27272a !important;
     color: #ffffff !important;
     border: 1px solid #444 !important;
@@ -478,6 +478,16 @@ STYLE = """
   .dark-mode .gr-markdown,
   .dark-mode .gradio-container .gr-markdown {
       color: #ffffff !important;
+  }
+
+  .light-mode .svelte-y6qw75 {
+    background-color: #d1d1d1 !important;
+    color: #000 !important;
+  }
+
+  .dark-mode .svelte-1hfxrpf, .dark-mode .svelte-y6qw75 {
+    background-color: #282828 !important;
+    color: #fff !important;
   }
 
 </style>
@@ -581,7 +591,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
               currency_dropdown = gr.Dropdown(
                 choices=list(CURRENCY_MAP.keys()),
                 value="USD",
-                label="Select Currency",
+                show_label=False,
                 scale=2
               )
               budget_slider = gr.Slider(minimum=100, maximum=30000, step=100, value=None, label="💰 Budget ($) (optional)", interactive=True, scale=8)
