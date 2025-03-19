@@ -227,6 +227,16 @@ def extract_places(trip_text):
 
     return response.choices[0].message.content.strip()
 
+#Creates a markdown file with plan_text
+def save_plan_to_file(plan_text):
+    global plan_num
+    filename = f"trip_plan_{plan_num}.md"
+    plan_num += 1
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(plan_text)
+    
+    return filename
+
 #Title animation - https://www.gradio.app/guides/custom-CSS-and-JS
 js_animate = """
 function load_animate() {
@@ -360,6 +370,12 @@ STYLE = """
 
   #send-button {
     width: 20%;
+    align-self: end;
+    margin-left: auto;
+  }
+
+  #download-button {
+    width: fit-content;
     align-self: end;
     margin-left: auto;
   }
@@ -502,6 +518,9 @@ CURRENCY_MAP = {
   "AUD": ("A$", 100, 28000),
 }
 
+global plan_num
+plan_num = 1
+
 #Create custom theme colors
 custom_theme = gr.themes.Default(primary_hue="blue", secondary_hue="blue")
 
@@ -607,15 +626,20 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         plan_output = gr.Markdown(label="Plan")
         map_output = gr.HTML("")
         places = gr.Textbox(visible=False)
+        download_button = gr.DownloadButton("Download", visible=False, elem_id="download-button")
 
         generate_btn.click(
-            fn=lambda *args: ("**Generating trip plan...**", "", ""),  
+            fn=lambda *args: ("**Generating trip plan...**", "", "", gr.update(visible=False)),  
             inputs=[],
-            outputs=[plan_output, map_output, error_output]
+            outputs=[plan_output, map_output, error_output, download_button]
         ).then(
             fn=generate_plan,
             inputs=[details_input, destination_input, interests_input, num_days_slider, budget_slider, time_period, num_people_slider, currency_dropdown, language_dropdown],
             outputs=[plan_output, places, error_output]  
+        ).then(
+            fn=lambda plan_text: gr.update(visible=True, value=save_plan_to_file(plan_text)),
+            inputs=[plan_output],
+            outputs=[download_button]
         ).then(
             fn=lambda *args: ("Generating map..."),  
             inputs=[],
@@ -627,7 +651,7 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
         )
 
         clear_plan.click(
-            fn=lambda: ("", "", "", None, None, "", None, "USD", "", "", ""),
+            fn=lambda: ("", "", "", None, None, "", None, "USD", "", "", "", gr.update(visible=False)),
             inputs=[],
             outputs=[
                 details_input,
@@ -640,7 +664,8 @@ with gr.Blocks(js=js_animate, theme=custom_theme) as demo:
                 currency_dropdown,
                 plan_output,
                 map_output,
-                error_output
+                error_output,
+                download_button
             ]
         ).then(
             fn=update_budget_slider,
