@@ -5,35 +5,35 @@ The chatbot is also hosted on Hugging Face [here](https://huggingface.co/spaces/
 
 ## Running the application locally
 
-1. Add a .env file to contain the Groq API key:
+**1. Add a .env file to contain the Groq API key:**
 
 ```
 GROQ_API_KEY=your_api_key
 ```
 
-2. Create a python environment
+**2. Create a python environment**
 ```
 python -m venv gradio-env
 ```
 
-3. Activate the python environment
+**3. Activate the python environment**
 
-For Linux/macOS: 
+  For Linux/macOS: 
 ```
 source gradio-env/bin/activate
 ```
 
-For Windows: 
+  For Windows: 
 ```
 gradio-env\Scripts\activate
 ```
 
-3. Install dependencies
+**4. Install dependencies**
 ```
 pip install -r requirements.txt
 ```
 
-4. Run the application
+**5. Run the application**
 
 ```
 python app.py
