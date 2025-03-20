@@ -50,7 +50,7 @@ def generate_plan(details, destination, interests, num_days, budget, time_period
     
     #Check if an adequate number of fields were field
     if not any([destination, details]):
-        return "", "", "**❌ Please fill either Destination or Trip Details so we know where you are planning to travel.**"
+        return "", "", "** Please fill either Destination or Trip Details so we know where you are planning to travel.**"
     
     prompt_parts = ["Generate a travel plan."]
 
@@ -102,9 +102,10 @@ def chat_with_bot_stream(user_input, audio, language, history):
     language_prompt = f"Please respond in {language}."
 
     system_prompt = (
-        "You are an expert travel guide for Japan with 10+ years of experience. "
+        "You are an expert travel guide for more than 100 countries with 10+ years of experience. "
         "You provide detailed vacation plans, suggest popular attractions, local food, and affordable luxury hotels. "
         "Your recommendations are practical and budget-friendly. "
+        "Your can suggest appropriate alternatives when user's requirement is not appropriate, for example, extermely low budget. "
         "You also speak 10+ languages and can respond in other languages if needed. " + language_prompt
     )
 
